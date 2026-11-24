@@ -25,6 +25,13 @@ export interface FarmStep {
   time: string;
 }
 
+export interface PlanMetrics {
+  capital_usd: number;
+  gas_usd: number;
+  setup_minutes: number;
+  hold_days: number;
+}
+
 export interface BoardRow {
   rank: number;
   slug: string;
@@ -50,6 +57,10 @@ export interface BoardRow {
   early: boolean;
   farm_steps: string[];
   farm_plan: FarmStep[];
+  capital_usd: number;
+  gas_usd: number;
+  setup_minutes: number;
+  hold_days: number;
 }
 
 export interface LiveRow {
@@ -88,6 +99,15 @@ export interface ModelParams {
   ratio_cap: number;
 }
 
+export interface ScreenedRow {
+  slug: string;
+  name: string;
+  category: string | null;
+  chains: string[];
+  tvl_usd: number;
+  reason: string;
+}
+
 export interface RadarData {
   as_of: string;
   source: string;
@@ -99,10 +119,12 @@ export interface RadarData {
   board_size: number;
   early_size: number;
   live_shown: number;
+  screened_size: number;
   model: ModelParams;
   kinds: KindMultiple[];
   rows: BoardRow[];
   live: LiveRow[];
+  screened: ScreenedRow[];
 }
 
 export interface Scored {

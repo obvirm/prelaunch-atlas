@@ -7,7 +7,7 @@
   var bySlug = {};
   var kindOrder = {};
   var chainNames = {};
-  var state = { view: 'board', kind: '', chain: '', house: false, q: '', sort: 'implied', dir: 'desc', slug: '' };
+  var state = { view: 'board', kind: '', chain: '', house: false, q: '', sort: 'implied', dir: 'desc', slug: '', basket: [] };
   rows.forEach(function (r) { bySlug[r.slug] = r; });
   R.kinds.forEach(function (k, i) { kindOrder[k.kind] = i; });
 
@@ -46,6 +46,25 @@
   function colorOf(kind) { var i = kindOrder[kind]; return PALETTE[(i === undefined ? 0 : i) % PALETTE.length]; }
   function multText(n) { return n.toFixed(3) + '×'; }
   function pad(n) { return String(n).padStart(2, '0'); }
+  function money2(n) { return '$' + (Math.round(n * 100) / 100).toFixed(2); }
+  function basketHas(slug) { return state.basket.indexOf(slug) >= 0; }
+  function basketRows() { return state.basket.map(function (slug) { return bySlug[slug]; }).filter(Boolean); }
+  function storeBasket() {
+    try { localStorage.setItem('prelaunch-atlas-basket', state.basket.join(',')); } catch (err) { /* private mode */ }
+  }
+  function loadBasket() {
+    try {
+      return (localStorage.getItem('prelaunch-atlas-basket') || '').split(',').filter(function (slug) { return bySlug[slug]; });
+    } catch (err) { return []; }
+  }
+  function toggleBasket(slug) {
+    if (!bySlug[slug]) return;
+    var i = state.basket.indexOf(slug);
+    if (i >= 0) state.basket.splice(i, 1);
+    else state.basket.push(slug);
+    storeBasket();
+    refresh({ scroll: 'keep' });
+  }
 
   function seedArt() {
     var ticks = '';
@@ -95,6 +114,7 @@
 
   function rowHTML(row) {
     var stamp = '<span class="stamp' + (row.watchlist ? '' : ' early') + '">' + (row.watchlist ? 'House' : 'Field trial') + '</span>';
+    var added = basketHas(row.slug);
     return '<tr>' +
       '<td class="col-lot"><span class="lot">' + row.rank + '</span></td>' +
       '<td class="col-name"><a class="row-name" href="?view=detail&slug=' + encodeURIComponent(row.slug) + '">' + esc(row.name) + '</a><span class="row-slug">' + esc(row.slug) + stamp + '</span></td>' +
@@ -104,7 +124,7 @@
       '<td class="col-vigor num growth ' + growthClass(row.change_7d) + '">' + pct(row.change_7d) + '</td>' +
       '<td class="col-age num age">' + ageText(row.age_days) + '</td>' +
       '<td class="col-yield num"><span class="yield">' + usd(row.implied_value_usd) + '<small>implied</small></span></td>' +
-      '<td class="col-farm"><a class="farm-link" href="?view=detail&slug=' + encodeURIComponent(row.slug) + '" data-scroll="plan">Plan</a></td>' +
+      '<td class="col-farm"><span class="farm-actions"><a class="farm-link" href="?view=detail&slug=' + encodeURIComponent(row.slug) + '" data-scroll="plan">Plan</a><button type="button" class="basket-add' + (added ? ' is-in' : '') + '" data-add="' + esc(row.slug) + '" aria-pressed="' + (added ? 'true' : 'false') + '" aria-label="' + (added ? 'Remove ' + esc(row.name) + ' from' : 'Add ' + esc(row.name) + ' to') + ' the seed order">' + (added ? '✓' : '+') + '</button></span></td>' +
       '</tr>';
   }
 
@@ -129,23 +149,27 @@
     var view = state.view;
     document.body.setAttribute('data-view', view);
     $('top').hidden = view !== 'board' && view !== 'live';
-    $('ledger').hidden = view !== 'board' && view !== 'live';
+    $('ledger').hidden = view !== 'board' && view !== 'live' && view !== 'screened';
     $('filters').hidden = view !== 'board';
     $('result-count').hidden = view !== 'board';
     $('board-wrap').hidden = view !== 'board';
     $('empty-board').hidden = true;
     $('live-panel').hidden = view !== 'live';
+    $('screened-panel').hidden = view !== 'screened';
     $('detail').hidden = view !== 'detail';
     $('method').hidden = view !== 'method';
     if (view === 'board') renderBoard();
     else if (view === 'live') renderLive();
+    else if (view === 'screened') renderScreened();
     else if (view === 'detail') renderDetail();
     else renderMethod();
     syncTabs();
+    renderBasket();
     var row = view === 'detail' ? bySlug[state.slug] : null;
     document.title = view === 'detail' && row ? row.name + ' — Prelaunch Atlas'
       : view === 'method' ? 'How the yield is built — Prelaunch Atlas'
       : view === 'live' ? 'Live tokens — Prelaunch Atlas'
+      : view === 'screened' ? 'Screened out — Prelaunch Atlas'
       : 'Prelaunch Atlas — protocols before their token';
   }
 
@@ -197,6 +221,54 @@
     $('live-count').textContent = 'Showing ' + R.live_shown + ' of ' + R.live_size + ' live protocols · largest market cap first';
   }
 
+  function renderScreened() {
+    var list = R.screened || [];
+    var body = $('screened-body');
+    if (body.childElementCount === 0) {
+      body.innerHTML = list.map(function (row) {
+        return '<tr>' +
+          '<td class="col-name"><span class="row-name">' + esc(row.name) + '</span><span class="row-slug">' + esc(row.slug) + '</span></td>' +
+          '<td class="col-kind"><span class="kind-cell">' + esc(row.category || 'Uncategorised') + '</span></td>' +
+          '<td class="col-chains"><span class="chains-cell">' + esc(chainShort(row.chains)) + '</span></td>' +
+          '<td class="col-tvl num tvl">' + usd(row.tvl_usd) + '</td>' +
+          '<td class="col-why"><span class="reason">' + esc(row.reason) + '</span></td>' +
+          '</tr>';
+      }).join('');
+    }
+    $('screened-count').innerHTML = 'Showing <b>' + list.length + '</b> pre-token protocols set aside · <b>' + R.board_size + '</b> ranked · <b>' + R.pre_size + '</b> on record';
+  }
+
+  function renderBasket() {
+    var list = basketRows();
+    var bar = $('basket-bar');
+    var has = list.length > 0;
+    bar.hidden = !has;
+    document.body.classList.toggle('has-basket', has);
+    if (!has) { $('basket-drawer').hidden = true; return; }
+    var capital = 0, gas = 0, setup = 0, hold = 0, implied = 0;
+    list.forEach(function (row) {
+      capital += row.capital_usd || 0;
+      gas += row.gas_usd || 0;
+      setup += row.setup_minutes || 0;
+      hold = Math.max(hold, row.hold_days || 0);
+      implied += row.implied_value_usd || 0;
+    });
+    $('basket-count').textContent = list.length + (list.length === 1 ? ' lot' : ' lots');
+    $('basket-capital').textContent = usd(capital);
+    $('basket-gas').textContent = money2(gas);
+    $('basket-hold').textContent = hold ? hold + ' days' : '—';
+    $('basket-setup').textContent = setup + ' min';
+    $('basket-implied').textContent = usd(implied);
+    $('basket-cover').textContent = capital > 0 ? Math.round(implied / capital).toLocaleString('en-US') + '×' : '—';
+    if (!$('basket-drawer').hidden) renderBasketList(list);
+  }
+
+  function renderBasketList(list) {
+    $('basket-list').innerHTML = list.map(function (row) {
+      return '<div class="basket-line"><div><span class="basket-lot">Lot ' + pad(row.rank) + '</span><strong>' + esc(row.name) + '</strong><small>' + esc(row.kind) + ' · ' + usd(row.capital_usd) + ' capital · ' + money2(row.gas_usd) + ' gas · ' + row.hold_days + ' days</small></div><button type="button" class="basket-remove" data-remove="' + esc(row.slug) + '" aria-label="Remove ' + esc(row.name) + '">Remove</button></div>';
+    }).join('');
+  }
+
   function renderDetail() {
     var row = bySlug[state.slug];
     if (!row) { state.view = 'board'; render(); return; }
@@ -208,12 +280,14 @@
     var v4 = v3 * row.distribution_mult;
     var src = SOURCE_LABEL[row.multiple_source] || row.multiple_source;
     var stamp = row.watchlist ? 'House selection' : 'Field trial';
+    var added = basketHas(row.slug);
     var top = '<div class="detail-top"><span>Plate ' + pad(row.rank) + ' of ' + R.board_size + ' · ' + stamp + '</span><a class="back" href="?view=board">Back to the ledger</a></div>';
     var record = '<article class="detail-record" aria-labelledby="detail-name">' +
       '<p class="detail-kind"><i class="kind-dot" style="background:' + color + '"></i>' + esc(row.kind) + ' · ' + esc(row.group) + '</p>' +
       '<h1 class="detail-name" id="detail-name">' + esc(row.name) + '</h1>' +
       '<p class="detail-slug">' + esc(row.slug) + ' · no token on record</p>' +
       '<div class="detail-yield"><span>Expected yield · implied</span><strong>' + usd(row.implied_value_usd) + '</strong><small>if a token launches</small></div>' +
+      '<button type="button" class="basket-toggle' + (added ? ' is-in' : '') + '" data-add="' + esc(row.slug) + '" aria-pressed="' + (added ? 'true' : 'false') + '">' + (added ? 'In the seed order' : 'Add to the seed order') + '</button>' +
       '<dl class="record">' +
       '<div><dt>Acreage · TVL</dt><dd>' + usd(row.tvl_usd) + '</dd></div>' +
       '<div><dt>Vigor · 7D</dt><dd><span class="growth ' + growthClass(row.change_7d) + '">' + pct(row.change_7d) + '</span></dd></div>' +
@@ -263,11 +337,13 @@
     $('deck-board').textContent = R.board_size;
     $('deck-watch').textContent = R.watchlist_size;
     $('deck-early').textContent = R.early_size;
+    $('deck-screened').textContent = R.screened_size;
     $('stat-watch').textContent = R.watchlist_size;
     $('stat-pre').textContent = R.pre_size;
     $('stat-live').textContent = R.live_size;
     $('tab-board').textContent = R.board_size;
     $('tab-live').textContent = R.live_size;
+    $('tab-screened').textContent = R.screened_size;
   }
 
   function syncControls() {
@@ -302,11 +378,13 @@
 
   function readParams(params) {
     var view = params.get('view');
-    if (view !== 'board' && view !== 'live' && view !== 'detail' && view !== 'method') view = 'board';
+    if (view !== 'board' && view !== 'live' && view !== 'detail' && view !== 'method' && view !== 'screened') view = 'board';
     var sort = params.get('sort');
     if (SORT_DIR[sort] === undefined) sort = 'implied';
     var dir = params.get('dir');
     if (dir !== 'asc' && dir !== 'desc') dir = SORT_DIR[sort];
+    var rawBasket = params.get('basket');
+    var basket = rawBasket === null ? null : rawBasket.split(',').filter(function (slug) { return bySlug[slug]; });
     return {
       view: view,
       kind: params.get('kind') || '',
@@ -315,7 +393,8 @@
       q: (params.get('q') || '').slice(0, 100),
       sort: sort,
       dir: dir,
-      slug: view === 'detail' ? (params.get('slug') || (rows[0] ? rows[0].slug : '')) : ''
+      slug: view === 'detail' ? (params.get('slug') || (rows[0] ? rows[0].slug : '')) : '',
+      basket: basket
     };
   }
 
@@ -333,6 +412,7 @@
         params.set('dir', state.dir);
       }
     }
+    if (state.basket.length) params.set('basket', state.basket.join(','));
     return '?' + params.toString();
   }
 
@@ -340,6 +420,8 @@
     if (state.kind && kindOrder[state.kind] === undefined) state.kind = '';
     if (state.chain && !chainNames[state.chain]) state.chain = '';
     if (state.view === 'detail' && !bySlug[state.slug] && rows.length > 0) state.slug = rows[0].slug;
+    if (!Array.isArray(state.basket)) state.basket = [];
+    state.basket = state.basket.filter(function (slug, i, list) { return bySlug[slug] && list.indexOf(slug) === i; });
   }
 
   function writeURL(opts) {
@@ -378,6 +460,10 @@
     $('house-filter').addEventListener('change', function (event) { state.house = event.target.checked; refresh({ scroll: 'keep' }); });
     $('search-filter').addEventListener('input', function (event) { state.q = event.target.value; refresh({ scroll: 'keep' }); });
     $('reset-filters').addEventListener('click', function (event) { event.preventDefault(); clearFilters(); });
+    $('basket-clear').addEventListener('click', function () { state.basket = []; storeBasket(); refresh({ scroll: 'keep' }); });
+    $('basket-review').addEventListener('click', function () { $('basket-drawer').hidden = false; renderBasketList(basketRows()); });
+    $('basket-close').addEventListener('click', function () { $('basket-drawer').hidden = true; });
+    document.addEventListener('keydown', function (event) { if (event.key === 'Escape') $('basket-drawer').hidden = true; });
     Array.prototype.forEach.call(document.querySelectorAll('#board-table thead [data-sort]'), function (button) {
       button.addEventListener('click', function () {
         var key = button.getAttribute('data-sort');
@@ -392,6 +478,10 @@
       if (!el || el.nodeType !== 1) return;
       var reset = el.closest('[data-reset]');
       if (reset) { event.preventDefault(); clearFilters(); return; }
+      var add = el.closest('[data-add]');
+      if (add) { event.preventDefault(); toggleBasket(add.getAttribute('data-add')); return; }
+      var remove = el.closest('[data-remove]');
+      if (remove) { event.preventDefault(); toggleBasket(remove.getAttribute('data-remove')); return; }
       var link = el.closest('a[href]');
       if (!link) return;
       var href = link.getAttribute('href');
@@ -401,7 +491,10 @@
       if (url.origin !== location.origin) return;
       event.preventDefault();
       var prev = state.view;
+      var oldBasket = state.basket.slice();
+      var hasBasketParam = url.searchParams.has('basket');
       state = readParams(url.searchParams);
+      if (!hasBasketParam) state.basket = oldBasket;
       normalize();
       var where = 'keep';
       if (state.view === 'detail') where = link.getAttribute('data-scroll') === 'plan' ? 'plan' : 'top';
@@ -412,6 +505,7 @@
     window.addEventListener('popstate', function () {
       var prev = state.view;
       state = readParams(new URLSearchParams(location.search));
+      if (state.basket === null) state.basket = loadBasket();
       normalize();
       var where = state.view === 'detail' || state.view === 'method' ? 'top' : (prev === 'detail' || prev === 'method') ? 'ledger' : 'keep';
       refresh({ history: false, scroll: where });
@@ -423,6 +517,7 @@
   $('cover-plate').innerHTML = packetHTML(rows[0], true);
   bindEvents();
   state = readParams(new URLSearchParams(location.search));
+  if (state.basket === null) state.basket = loadBasket();
   normalize();
   render();
   syncControls();

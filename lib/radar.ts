@@ -1,8 +1,8 @@
 import { EARLY_ROWS, LIVE_ROWS, MODEL } from './types.ts';
-import type { BoardRow, KindMultiple, LiveRow, RadarData, Snapshot, SnapshotProtocol } from './types.ts';
+import type { BoardRow, KindMultiple, LiveRow, RadarData, ScreenedRow, Snapshot, SnapshotProtocol } from './types.ts';
 import { buildComparables, categoryGroup, isPreToken, multipleFor, scoreProtocol } from './data.ts';
 import type { Comparables } from './data.ts';
-import { farmPlan, stepText } from './plan.ts';
+import { farmPlan, planMetrics, stepText } from './plan.ts';
 
 const VERSIONED = /\s(V\d+(\.\d+)?|v\d+(\.\d+)?|\d+\.\d+)$/;
 const WRAPPED = /\b(wrapped|staked|staking)\b/i;
@@ -15,6 +15,22 @@ function isEarlyCandidate(p: SnapshotProtocol, watchlist: Set<string>, floor: nu
   if (p.category !== null && EXCLUDED_CATEGORIES.has(p.category)) return false;
   if (VERSIONED.test(p.name) || WRAPPED.test(p.name) || EXCHANGE.test(p.name)) return false;
   return true;
+}
+
+export function screenReason(p: SnapshotProtocol, watchlist: Set<string>, floor: number): string | null {
+  if (!isPreToken(p) || watchlist.has(p.slug)) return null;
+  if (p.category !== null && EXCLUDED_CATEGORIES.has(p.category)) {
+    if (p.category === 'CEX') return 'exchange token';
+    if (p.category === 'Liquid Staking') return 'liquid staking';
+    if (p.category === 'Liquid Restaking' || p.category === 'Restaked BTC') return 'restaking';
+    if (p.category === 'Bridge' || p.category === 'Canonical Bridge') return 'bridge';
+    return 'excluded kind';
+  }
+  if (VERSIONED.test(p.name)) return 'versioned product';
+  if (WRAPPED.test(p.name)) return 'wrapped or staked product';
+  if (EXCHANGE.test(p.name)) return 'exchange-branded';
+  if (p.tvl_usd >= floor) return 'above the floor, outside the house selection';
+  return 'below the floor, outside the early field';
 }
 
 export function buildRows(snapshot: Snapshot, comps: Comparables): BoardRow[] {
@@ -46,7 +62,9 @@ export function buildRows(snapshot: Snapshot, comps: Comparables): BoardRow[] {
     };
   });
   scored.sort((a, b) => b.score.implied - a.score.implied || (a.p.slug < b.p.slug ? -1 : a.p.slug > b.p.slug ? 1 : 0));
-  return scored.map((s, i) => ({
+  return scored.map((s, i) => {
+    const metrics = planMetrics(s.p, s.score.age);
+    return {
     rank: i + 1,
     slug: s.p.slug,
     name: s.p.name,
@@ -71,7 +89,12 @@ export function buildRows(snapshot: Snapshot, comps: Comparables): BoardRow[] {
     early: !s.watch,
     farm_steps: s.plan.map(stepText),
     farm_plan: s.plan,
-  }));
+    capital_usd: metrics.capital_usd,
+    gas_usd: metrics.gas_usd,
+    setup_minutes: metrics.setup_minutes,
+    hold_days: metrics.hold_days,
+    };
+  });
 }
 
 export function liveRows(snapshot: Snapshot): LiveRow[] {
@@ -103,6 +126,12 @@ export function buildRadar(snapshot: Snapshot): { board: BoardRow[]; radar: Rada
   const comps = buildComparables(snapshot);
   const board = buildRows(snapshot, comps);
   const live = liveRows(snapshot);
+  const boardSlugs = new Set(board.map((r) => r.slug));
+  const watchlist = new Set(snapshot.watchlist);
+  const screened: ScreenedRow[] = snapshot.protocols
+    .filter((p) => isPreToken(p) && !boardSlugs.has(p.slug))
+    .map((p) => ({ slug: p.slug, name: p.name, category: p.category, chains: p.chains, tvl_usd: p.tvl_usd, reason: screenReason(p, watchlist, snapshot.floor_usd) ?? 'outside the board' }))
+    .sort((a, b) => b.tvl_usd - a.tvl_usd || (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0));
   const liveSize = snapshot.protocols.filter((p) => !isPreToken(p)).length;
   const preSize = snapshot.protocols.filter(isPreToken).length;
   const radar: RadarData = {
@@ -116,10 +145,12 @@ export function buildRadar(snapshot: Snapshot): { board: BoardRow[]; radar: Rada
     board_size: board.length,
     early_size: board.filter((r) => r.early).length,
     live_shown: live.length,
+    screened_size: screened.length,
     model: MODEL,
     kinds: kindTable(board, comps),
     rows: board,
     live,
+    screened,
   };
   return { board, radar };
 }

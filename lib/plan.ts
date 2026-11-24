@@ -1,4 +1,4 @@
-import type { FarmStep, SnapshotProtocol } from './types.ts';
+import type { FarmStep, PlanMetrics, SnapshotProtocol } from './types.ts';
 
 const CHEAP_CHAINS = ['Solana', 'Tron', 'Binance', 'Bittensor', 'Noble', 'Algorand', 'Ripple', 'Stellar', 'Sui', 'Aptos', 'Monad', 'Plume'];
 
@@ -25,6 +25,22 @@ function gasFor(chain: string): string {
   if (chain === 'Ethereum') return 'about $6-12';
   if (CHEAP_CHAINS.some((c) => chain.includes(c))) return 'under $0.20';
   return 'about $0.50-2';
+}
+
+function gasUnitFor(chain: string): number {
+  if (chain === 'Ethereum') return 9;
+  if (CHEAP_CHAINS.some((c) => chain.includes(c))) return 0.2;
+  return 1.25;
+}
+
+export function planMetrics(p: SnapshotProtocol, age: number | null): PlanMetrics {
+  const gasUnit = gasUnitFor(chainOf(p));
+  return {
+    capital_usd: capitalFor(p),
+    gas_usd: Math.round(gasUnit * 2 * 100) / 100,
+    setup_minutes: 50,
+    hold_days: holdFor(age),
+  };
 }
 
 function actionFor(p: SnapshotProtocol, capital: number, chain: string): string {

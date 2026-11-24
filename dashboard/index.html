@@ -18,7 +18,7 @@
   <section class="hero" id="top">
     <div class="hero-copy">
       <h1>The protocols that haven’t launched a token.</h1>
-      <p class="deck">A working field guide to <strong id="deck-pre">342</strong> protocols that record no token. We rank <strong id="deck-board">178</strong> of them — <strong id="deck-watch">40</strong> on the house watchlist, <strong id="deck-early">138</strong> below the floor — by the value a launch could carry, and give every one a farm plan.</p>
+      <p class="deck">A working field guide to <strong id="deck-pre">342</strong> protocols that record no token. We rank <strong id="deck-board">178</strong> of them — <strong id="deck-watch">40</strong> on the house watchlist, <strong id="deck-early">138</strong> below the floor — by the value a launch could carry, and give every one a farm plan. The other <strong id="deck-screened">164</strong> are listed with the reason they were set aside.</p>
       <dl class="stats">
         <div><dt>House selection</dt><dd id="stat-watch">40</dd><p>TVL ≥ $50M, no token</p></div>
         <div><dt>Record no token</dt><dd id="stat-pre">342</dd><p>of 758 protocols</p></div>
@@ -38,6 +38,7 @@
       <div class="view-tabs" role="tablist" aria-label="View">
         <a role="tab" href="?view=board" data-view-link="board" aria-selected="true">Board <span id="tab-board">178</span></a>
         <a role="tab" href="?view=live" data-view-link="live" aria-selected="false">Live tokens <span id="tab-live">416</span></a>
+        <a role="tab" href="?view=screened" data-view-link="screened" aria-selected="false">Screened out <span id="tab-screened">164</span></a>
       </div>
     </div>
     <form class="filters" id="filters" autocomplete="off">
@@ -90,6 +91,28 @@
       </div>
       <p class="note">Exchange tokens (CEX) are left out. A live token is why a protocol is not on the board: the board is for the token that does not exist yet.</p>
     </div>
+
+    <div class="screened-panel" id="screened-panel" hidden>
+      <div class="live-head">
+        <h2>Screened out, with the reason</h2>
+        <p>The board ranks 178 of the 342 protocols that record no token. The 164 below are the rest of that field: bridges, liquid staking and restaking, wrapped or versioned products, exchange tokens and pre-token protocols above the floor but outside the 40-name house selection. None of them is dropped without a record.</p>
+      </div>
+      <p class="count" id="screened-count"></p>
+      <div class="table-wrap">
+        <table class="board screened-table">
+          <caption class="sr-only">Pre-token protocols that are not ranked, with the reason each was set aside</caption>
+          <thead><tr>
+            <th scope="col" class="col-name">Variety</th>
+            <th scope="col" class="col-kind">Kind</th>
+            <th scope="col" class="col-chains">In the field</th>
+            <th scope="col" class="col-tvl">Acreage · TVL</th>
+            <th scope="col" class="col-why">Why not ranked</th>
+          </tr></thead>
+          <tbody id="screened-body"></tbody>
+        </table>
+      </div>
+      <p class="note">The house selection is a floor, not a ceiling: 138 field trials below the $50M floor are ranked alongside it. A pre-token protocol above the floor that is not in the 40-name house selection is listed here rather than ranked, because the board's above-floor field is the selection. The same rule keeps bridges, liquid staking, restaking, wrapped or versioned products and exchange tokens out of the comparable set, where they would distort a kind multiple.</p>
+    </div>
   </section>
 
   <section class="detail" id="detail" hidden></section>
@@ -114,9 +137,32 @@
         <tbody id="kinds-body"></tbody>
       </table>
     </div>
-    <p class="note">Exchange tokens are left out of the board and the comparables. The board also sets aside bridges, liquid staking, restaking and wrapped or staked products of a token that already trades, so it ranks 178 of the 342 protocols that record no token. The watchlist is the floor, never the ceiling: 138 field trials below the $50M floor pass the same filter and are ranked alongside it. The snapshot carries no ranking, yield or farm plan; every number here is the entry’s own claim, not a prediction that a token will launch and not financial advice.</p>
+    <p class="note">Exchange tokens are left out of the board and the comparables. The board also sets aside bridges, liquid staking, restaking and wrapped or staked products of a token that already trades, so it ranks 178 of the 342 protocols that record no token. The watchlist is the floor, never the ceiling: 138 field trials below the $50M floor pass the same filter and are ranked alongside it. The seed order adds each plan’s capital, gas and setup minutes, holds for the longest plan, and shows implied ÷ capital as a cover ratio, not a return. The snapshot carries no ranking, yield or farm plan; every number here is the entry’s own claim, not a prediction that a token will launch and not financial advice.</p>
   </section>
 </main>
+<div class="basket-bar" id="basket-bar" hidden>
+  <div class="basket-lead"><span>Seed order</span><strong id="basket-count" aria-live="polite">0 lots</strong></div>
+  <dl class="basket-totals">
+    <div><dt>Capital</dt><dd id="basket-capital">$0</dd></div>
+    <div><dt>Gas</dt><dd id="basket-gas">$0</dd></div>
+    <div><dt>Hold</dt><dd id="basket-hold">—</dd></div>
+    <div><dt>Setup</dt><dd id="basket-setup">0 min</dd></div>
+    <div><dt>Implied</dt><dd id="basket-implied">$0</dd></div>
+    <div><dt>Cover</dt><dd id="basket-cover">—</dd></div>
+  </dl>
+  <div class="basket-actions">
+    <button type="button" id="basket-review">Review order</button>
+    <button type="button" id="basket-clear">Clear</button>
+  </div>
+</div>
+<div class="basket-drawer" id="basket-drawer" hidden role="region" aria-labelledby="basket-title">
+  <div class="basket-drawer-head">
+    <div><h2 id="basket-title">The basket</h2></div>
+    <button type="button" id="basket-close">Close</button>
+  </div>
+  <div id="basket-list"></div>
+  <p class="basket-note">Capital is the position at work, not a fee. Gas is two moves per plan. Hold is the longest plan; setup is the sum. Implied ÷ capital is a cover ratio, not a return. Nothing here promises a token.</p>
+</div>
 <footer class="footer">
   <p>Snapshot 14 Nov 2026 · DefiLlama protocols API · 758 protocols at or above $5M TVL. Implied values are this entry’s claims, not predictions that a token will launch; nothing here is financial advice.</p>
   <p>Built for make.fun’s token-radar-01 bounty.</p>
