@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prelaunch Atlas — protocols before their token</title>
+<meta name="description" content="A field guide to DeFi protocols that record no token, ranked by the value a launch could carry, with a farm plan for each.">
+<link rel="stylesheet" href="app.css">
+</head>
+<body data-view="board">
+<a class="skip" href="#ledger">Skip to the ledger</a>
+<header class="masthead">
+  <a class="wordmark" href="?view=board">Prelaunch <span>Atlas</span></a>
+  <p class="mast-note">A field guide to protocols before their token</p>
+  <p class="mast-meta"><span>Snapshot 14 Nov 2026</span><span>make.fun · token-radar-01</span></p>
+</header>
+<main>
+  <section class="hero" id="top">
+    <div class="hero-copy">
+      <h1>The protocols that haven’t launched a token.</h1>
+      <p class="deck">A working field guide to <strong id="deck-pre">342</strong> protocols that record no token. We rank <strong id="deck-board">178</strong> of them — <strong id="deck-watch">40</strong> on the house watchlist, <strong id="deck-early">138</strong> below the floor — by the value a launch could carry, and give every one a farm plan.</p>
+      <dl class="stats">
+        <div><dt>House selection</dt><dd id="stat-watch">40</dd><p>TVL ≥ $50M, no token</p></div>
+        <div><dt>Record no token</dt><dd id="stat-pre">342</dd><p>of 758 protocols</p></div>
+        <div><dt>Already trading</dt><dd id="stat-live">416</dd><p>set aside, not ranked</p></div>
+      </dl>
+      <p class="method-note">Expected yield = TVL × kind multiple (live comparables) × vigor × years in field × distribution. <a href="?view=method">How the yield is built</a>.</p>
+    </div>
+    <div class="hero-plate" id="cover-plate"></div>
+  </section>
+
+  <section class="ledger" id="ledger" aria-labelledby="ledger-title">
+    <div class="ledger-head">
+      <div>
+        <h2 id="ledger-title">The trial ledger</h2>
+        <p class="ledger-sub">Every ranked protocol, strongest expected yield first. The house selection is a floor, not a ceiling.</p>
+      </div>
+      <div class="view-tabs" role="tablist" aria-label="View">
+        <a role="tab" href="?view=board" data-view-link="board" aria-selected="true">Board <span id="tab-board">178</span></a>
+        <a role="tab" href="?view=live" data-view-link="live" aria-selected="false">Live tokens <span id="tab-live">416</span></a>
+      </div>
+    </div>
+    <form class="filters" id="filters" autocomplete="off">
+      <label class="field"><span>Kind</span><select id="kind-filter"><option value="">All kinds</option></select></label>
+      <label class="field"><span>Chain</span><select id="chain-filter"><option value="">All chains</option></select></label>
+      <label class="check"><input type="checkbox" id="house-filter"><span>House selection only</span></label>
+      <label class="search"><span>Search</span><input type="search" id="search-filter" placeholder="Name or slug" spellcheck="false"></label>
+      <button type="reset" class="reset" id="reset-filters">Clear</button>
+    </form>
+    <p class="count" id="result-count" role="status" aria-live="polite"></p>
+    <div class="table-wrap" id="board-wrap">
+      <table class="board" id="board-table">
+        <caption class="sr-only">Protocols that record no token, ranked by implied value</caption>
+        <thead><tr>
+          <th scope="col" class="col-lot"><button type="button" data-sort="rank">Lot</button></th>
+          <th scope="col" class="col-name"><button type="button" data-sort="name">Variety</button></th>
+          <th scope="col" class="col-kind"><button type="button" data-sort="kind">Kind</button></th>
+          <th scope="col" class="col-chains">In the field</th>
+          <th scope="col" class="col-tvl"><button type="button" data-sort="tvl">Acreage · TVL</button></th>
+          <th scope="col" class="col-vigor"><button type="button" data-sort="growth">Vigor · 7D</button></th>
+          <th scope="col" class="col-age"><button type="button" data-sort="age">Years in field</button></th>
+          <th scope="col" class="col-yield"><button type="button" data-sort="implied">Expected yield · implied</button></th>
+          <th scope="col" class="col-farm">Farm</th>
+        </tr></thead>
+        <tbody id="board-body"></tbody>
+      </table>
+    </div>
+    <p class="empty" id="empty-board" hidden>No variety matches that trial. <button type="button" class="text-button" data-reset>Clear the filters</button>.</p>
+
+    <div class="live-panel" id="live-panel" hidden>
+      <div class="live-head">
+        <h2>Already in flower</h2>
+        <p>These protocols already trade a token, so a launch is not ahead of them. Their market cap is the market’s own value, not the radar’s; they are not ranked.</p>
+      </div>
+      <p class="count" id="live-count"></p>
+      <div class="table-wrap">
+        <table class="board live-table">
+          <caption class="sr-only">Protocols whose token already trades</caption>
+          <thead><tr>
+            <th scope="col" class="col-lot">#</th>
+            <th scope="col" class="col-name">Variety</th>
+            <th scope="col" class="col-kind">Kind</th>
+            <th scope="col" class="col-chains">In the field</th>
+            <th scope="col" class="col-tvl">Acreage · TVL</th>
+            <th scope="col" class="col-tvl">Market cap</th>
+            <th scope="col" class="col-vigor">Vigor · 7D</th>
+          </tr></thead>
+          <tbody id="live-body"></tbody>
+        </table>
+      </div>
+      <p class="note">Exchange tokens (CEX) are left out. A live token is why a protocol is not on the board: the board is for the token that does not exist yet.</p>
+    </div>
+  </section>
+
+  <section class="detail" id="detail" hidden></section>
+
+  <section class="method" id="method" hidden>
+    <div class="method-head">
+      <a class="back" href="?view=board">Back to the ledger</a>
+      <h1>How the yield is built</h1>
+      <p class="ledger-sub">The model uses only the snapshot’s own figures. Every kind multiple is the median market cap to TVL of protocols in the same kind whose token already trades; thin samples are capped, never trusted upward.</p>
+    </div>
+    <p class="formula">Expected yield = TVL × <em>kind multiple</em> × <em>vigor</em> × <em>years in field</em> × <em>distribution</em></p>
+    <div class="method-grid">
+      <div><h2>Vigor</h2><p>1 + 0.6 × the seven-day TVL change, clamped to −50% and +100%.</p></div>
+      <div><h2>Years in field</h2><p>0.82 + 0.18 × min(age in days, 1,460) / 1,460. Older protocols earn a patience premium; 0.90 when the snapshot has no start date.</p></div>
+      <div><h2>Distribution</h2><p>1 + 0.02 × min(chains − 1, 4). A protocol on more chains has more surface for a token.</p></div>
+      <div><h2>Kind multiple</h2><p>The median mcap/TVL of live protocols in the kind. Each ratio is held between 0.02× and 2× before the median, so one outlier cannot set a kind. With fewer than four live comparables, the lower of the kind’s median and its wider group’s; with none, a stated fallback.</p></div>
+    </div>
+    <div class="table-wrap">
+      <table class="board kinds-table">
+        <caption class="sr-only">The multiple used for each kind and the live comparables behind it</caption>
+        <thead><tr><th scope="col" class="col-name">Kind</th><th scope="col" class="col-kind">Group</th><th scope="col" class="col-tvl">Live comparables</th><th scope="col" class="col-tvl">Median</th><th scope="col" class="col-yield">Used</th><th scope="col" class="col-farm">Basis</th></tr></thead>
+        <tbody id="kinds-body"></tbody>
+      </table>
+    </div>
+    <p class="note">Exchange tokens are left out of the board and the comparables. The board also sets aside bridges, liquid staking, restaking and wrapped or staked products of a token that already trades, so it ranks 178 of the 342 protocols that record no token. The watchlist is the floor, never the ceiling: 138 field trials below the $50M floor pass the same filter and are ranked alongside it. The snapshot carries no ranking, yield or farm plan; every number here is the entry’s own claim, not a prediction that a token will launch and not financial advice.</p>
+  </section>
+</main>
+<footer class="footer">
+  <p>Snapshot 14 Nov 2026 · DefiLlama protocols API · 758 protocols at or above $5M TVL. Implied values are this entry’s claims, not predictions that a token will launch; nothing here is financial advice.</p>
+  <p>Built for make.fun’s token-radar-01 bounty.</p>
+</footer>
+<noscript><p class="noscript">This radar needs JavaScript to draw the board and the plates.</p></noscript>
+<script src="../data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
