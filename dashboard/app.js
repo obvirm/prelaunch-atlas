@@ -269,6 +269,44 @@
     }).join('');
   }
 
+  function readinessHTML(row) {
+    var aboveFloor = row.tvl_usd >= R.floor_usd;
+    var age = row.age_days;
+    var ageState = age === null ? 'No date' : age >= 730 ? 'Long' : age >= 365 ? 'Building' : 'New';
+    var ageTone = age !== null && age >= 365 ? 'is-met' : 'is-watch';
+    var growth = row.change_7d;
+    var growthState = growth === null ? 'No 7D' : growth > 0 ? 'Up' : growth < 0 ? 'Down' : 'Flat';
+    var growthTone = growth !== null && growth > 0 ? 'is-met' : 'is-watch';
+    var chainState = row.chains.length > 1 ? 'Multi' : row.chains.length === 1 ? 'Single' : 'No chain';
+    var chainTone = row.chains.length > 1 ? 'is-met' : 'is-watch';
+    var multipleState = row.multiple_n >= 4 ? 'Full' : row.multiple_n > 0 ? 'Thin' : 'Fallback';
+    var multipleTone = row.multiple_n >= 4 ? 'is-met' : 'is-watch';
+    var multipleBody = row.multiple_n === 0
+      ? multText(row.multiple) + ' · no live comparable.'
+      : multText(row.multiple) + ' · ' + row.multiple_n + ' live ' + (row.multiple_n === 1 ? 'comparable' : 'comparables') + '.';
+    function item(tone, state, title, body) {
+      return '<li><span class="check-mark ' + tone + '">' + state + '</span><div class="check-body"><strong>' + title + '</strong><span>' + body + '</span></div></li>';
+    }
+    return '<aside class="readiness" aria-labelledby="readiness-title">' +
+      '<h2 id="readiness-title">Launch readiness</h2>' +
+      '<p class="readiness-intro">Six snapshot signals, then three checks the radar cannot make for you.</p>' +
+      '<div class="readiness-part"><h3>From the snapshot</h3><ul class="readiness-list">' +
+      item('is-met', 'Met', 'No token on record', 'gecko_id and symbol are null.') +
+      item(aboveFloor ? 'is-met' : 'is-watch', aboveFloor ? 'Above' : 'Below', 'TVL against the floor', usd(row.tvl_usd) + ' TVL · floor ' + usd(R.floor_usd) + '.') +
+      item(ageTone, ageState, 'Years in field', age === null ? 'No start date recorded.' : ageText(age) + ' · ' + age.toLocaleString('en-US') + ' days.') +
+      item(growthTone, growthState, 'Vigor · 7D', growth === null ? 'No seven-day change reported.' : pct(growth) + ' over seven days.') +
+      item(chainTone, chainState, 'In the field', row.chains.length ? row.chains.length + ' chains · ' + esc(chainShort(row.chains)) + '.' : 'No chain recorded.') +
+      item(multipleTone, multipleState, 'Kind multiple', multipleBody) +
+      '</ul></div>' +
+      '<div class="readiness-part"><h3>Check yourself</h3><ul class="readiness-list">' +
+      item('is-manual', 'Manual', 'Points or claim page', 'Official page; read the terms and snapshot dates.') +
+      item('is-manual', 'Manual', 'Contract and address', 'Match docs and a block explorer.') +
+      item('is-manual', 'Manual', 'Wallet hygiene', 'Fresh wallet; seed offline; revoke approvals.') +
+      '</ul></div>' +
+      '<p class="readiness-note">Snapshot signals are the record’s own, not a score. Manual items are not checked. No item predicts a token or eligibility.</p>' +
+      '</aside>';
+  }
+
   function renderDetail() {
     var row = bySlug[state.slug];
     if (!row) { state.view = 'board'; render(); return; }
@@ -308,6 +346,7 @@
       '</article>';
     var side = '<div class="plate-side">' + packetHTML(row, false) +
       '<div class="comparables"><p class="comparables-title">The kind multiple</p><p>' + esc(row.multiple_basis) + '</p></div>' +
+      readinessHTML(row) +
       '</div>';
     var plan = '<div class="plan-column" id="plan"><h2>Sowing notes <span>farm plan</span></h2><ol class="plan">' +
       row.farm_plan.map(function (step, i) {
